@@ -1,4 +1,4 @@
-// import Head from 'next/head'
+Link; // import Head from 'next/head'
 
 import {
   Flex,
@@ -12,17 +12,31 @@ import {
 } from "@chakra-ui/core";
 import { useEffect, useState } from "react";
 import axios from "axios";
+import Wish from "../components/Wish";
+import InfiniteScroll from "react-infinite-scroll-component";
 
 export default function Home() {
   const [wishes, setWishes] = useState([]);
-
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
 
   const getWishes = async () => {
-    setLoading(true)
-    const res = await axios.get("/api/wishes");
+    setLoading(true);
+    const res = await axios.get("/api/wishes?page=1");
     setWishes(res.data);
-    setLoading(false)
+    setLoading(false);
+  };
+  
+  const getWishesNext = async () => {
+    const res = await axios.get(`/api/wishes?page=${page+1}`);
+    console.log(res)
+    if(res.data.length > 0){
+      setPage(page+1)
+      setWishes([...wishes, ...res.data]);
+    } else {
+      setHasMore(false)
+    }
   };
 
   useEffect(() => {
@@ -77,22 +91,21 @@ export default function Home() {
           </Flex>
         ) : (
           <Flex flexDir="column">
-            {wishes.map((wish) => (
-              <Box bg="gray.600" w="100%" p={4} my={2} borderRadius="md">
-                <Box fontSize="sm" mb={3}>
-                  <Text color="gray.50" fontWeight="bold">
-                    {wish.name}
-                  </Text>
-                  <Link
-                    href={`https://instagram.com/${wish.instagram}`}
-                    isExternal
-                  >
-                    @{wish.instagram}
-                  </Link>
-                </Box>
-                <Text>{wish.message}</Text>
-              </Box>
-            ))}
+            <InfiniteScroll
+              dataLength={wishes.length}
+              next={() => getWishesNext()}
+              hasMore={hasMore}
+              loader={<Spinner />}
+              endMessage={
+                <Text textAlign="center" mt={3}>
+                  O estoque de desejos acabou :3
+                </Text>
+              }
+            >
+              {wishes.map((wish) => (
+                <Wish wish={wish} key={wish._id} />
+              ))}
+            </InfiniteScroll>
           </Flex>
         )}
       </Flex>
